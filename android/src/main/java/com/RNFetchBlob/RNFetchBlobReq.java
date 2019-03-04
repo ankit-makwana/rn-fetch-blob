@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
@@ -33,7 +34,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
+import java.net.Proxy;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
@@ -51,9 +54,11 @@ import java.util.concurrent.TimeUnit;
 
 import 	javax.net.ssl.SSLSocketFactory;
 
+import okhttp3.Authenticator;
 import okhttp3.Call;
 import okhttp3.ConnectionPool;
 import okhttp3.ConnectionSpec;
+import okhttp3.Credentials;
 import okhttp3.Headers;
 import okhttp3.Interceptor;
 import okhttp3.MediaType;
@@ -62,6 +67,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import okhttp3.Route;
 import okhttp3.TlsVersion;
 
 
@@ -229,7 +235,33 @@ public class RNFetchBlobReq extends BroadcastReceiver implements Runnable {
             if (this.options.trusty) {
                 clientBuilder = RNFetchBlobUtils.getUnsafeOkHttpClient(client);
             } else {
-                clientBuilder = client.newBuilder();
+                
+                Proxy proxyObj;
+                final String proxyUsername, proxyPassword;
+
+                System.out.println("should proxy: " + this.options.shouldProxy);
+                if (this.options.shouldProxy) {
+                    proxyUsername = this.options.proxyUsername;
+                    proxyPassword = this.options.proxyPassword;
+                    proxyObj = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(this.options.proxyIp, this.options.proxyPort));
+                } else {
+                    proxyUsername = null;
+                    proxyPassword = null;
+                    proxyObj = Proxy.NO_PROXY;
+                }
+
+                clientBuilder = client.newBuilder().proxy(proxyObj).proxyAuthenticator(new Authenticator() {
+                    @Override
+                    public Request authenticate(Route route, Response response) throws IOException {
+                        System.out.println("rnfetchblob proxy authenticator");
+                        if (response.request().header("Proxy-Authorization") != null) {
+                            return null; // Give up, we've already attempted to authenticate.
+                        }
+
+                        String credential = Credentials.basic(proxyUsername, proxyPassword);
+                        return response.request().newBuilder().header("Proxy-Authorization", credential).build();
+                    }
+                });
             }
 
             final Request.Builder builder = new Request.Builder();

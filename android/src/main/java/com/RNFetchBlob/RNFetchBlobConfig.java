@@ -18,6 +18,11 @@ class RNFetchBlobConfig {
     public Boolean increment = false;
     public Boolean followRedirect = true;
     public ReadableArray binaryContentTypes = null;
+    public Boolean shouldProxy = false;
+    public String proxyIp;
+    public int proxyPort;
+    public String proxyUsername;
+    public String proxyPassword;
 
     RNFetchBlobConfig(ReadableMap options) {
         if(options == null)
@@ -46,6 +51,11 @@ class RNFetchBlobConfig {
         if(options.hasKey("timeout")) {
             this.timeout = options.getInt("timeout");
         }
+        this.shouldProxy = options.hasKey("shouldProxy") ?  options.getBoolean("shouldProxy") : false;
+        this.proxyIp = options.hasKey("proxyIp") ? options.getString("proxyIp") : null;
+        this.proxyPort = options.hasKey("proxyPort") ? options.getInt("proxyPort") : 0;
+        this.proxyUsername = options.hasKey("proxyUsername") ? options.getString("proxyUsername") : null;
+        this.proxyPassword = options.hasKey("proxyPassword") ? options.getString("proxyPassword") : null;
     }
 
 }
