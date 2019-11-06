@@ -96,6 +96,7 @@ export interface FetchBlobResponse {
      */
     flush(): void;
     respInfo: RNFetchBlobResponseInfo;
+    info(): RNFetchBlobResponseInfo;
     session(name: string): RNFetchBlobSession | null;
     /**
      * Read file content with given encoding, if the response does not contains
@@ -293,6 +294,7 @@ export interface Net {
     removeCookies(domain?: string): Promise<null>;
 }
 
+type HashAlgorithm = "md5" | "sha1" | "sha224" | "sha256" | "sha384" | "sha512";
 export interface FS {
     RNFetchBlobSession: RNFetchBlobSession;
 
@@ -315,6 +317,14 @@ export interface FS {
     session(name: string): RNFetchBlobSession;
 
     ls(path: string): Promise<string[]>;
+
+    /**
+     * Read the file from the given path and calculate a cryptographic hash sum over its contents.
+     *
+     * @param path Path to the file
+     * @param algorithm The hash algorithm to use
+     */
+    hash(path: string, algorithm: HashAlgorithm): Promise<string>;
 
     /**
      * Create file stream from file at `path`.
@@ -346,7 +356,7 @@ export interface FS {
      */
     writeFile(path: string, data: string | number[], encoding?: Encoding): Promise<void>;
 
-    appendFile(path: string, data: string | number[], encoding?: Encoding): Promise<void>;
+    appendFile(path: string, data: string | number[], encoding?: Encoding | "uri"): Promise<number>;
 
     /**
      * Wrapper method of readStream.
@@ -389,6 +399,7 @@ export interface Dirs {
     DocumentDir: string;
     CacheDir: string;
     PictureDir: string;
+    LibraryDir: string;
     MusicDir: string;
     MovieDir: string;
     DownloadDir: string;
@@ -422,7 +433,7 @@ export interface RNFetchBlobReadStream {
     onEnd(fn: () => void): void;
 }
 
-type Encoding = "utf8" | "ascii" | "base64";
+export type Encoding = "utf8" | "ascii" | "base64";
 
 /* tslint:disable-next-line interface-name*/
 export interface IOSApi {
@@ -596,11 +607,13 @@ export interface AddAndroidDownloads {
 
 export interface RNFetchBlobResponseInfo {
     taskId: string;
-    state: number;
+    state: string;
     headers: any;
+    redirects: string[];
     status: number;
     respType: "text" | "blob" | "" | "json";
     rnfbEncode: "path" | "base64" | "ascii" | "utf8";
+    timeout: boolean;
 }
 
 export interface RNFetchBlobStream {
@@ -613,8 +626,8 @@ export declare class RNFetchBlobFile {
 }
 
 export declare class RNFetchBlobStat {
-    lastModified: string;
-    size: string;
+    lastModified: number;
+    size: number;
     type: "directory" | "file";
     path: string;
     filename: string;
